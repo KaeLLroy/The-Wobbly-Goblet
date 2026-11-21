@@ -1,0 +1,883 @@
+<!doctype html>
+<!-- v1.2 — built between sessions. the d4 still rolls weird. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>The Wobbly Goblet · dice tray</title>
+<meta name="description" content="A small dice tray for the Thursday game. Roll d4 through d100, track modifiers, and keep a log of every natural 20.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,6 92,30 92,74 50,98 8,74 8,30' fill='%239a3324'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #efe3c8;
+    --paper-light: #f7efdc;
+    --ink: #2b2117;
+    --ink-soft: #5f4f3c;
+    --faint: rgba(43, 33, 23, .14);
+    --red: #9a3324;
+    --red-soft: rgba(154, 51, 36, .12);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: clamp(24px, 5vw, 64px) clamp(16px, 4vw, 48px);
+    color: var(--ink);
+    font-family: "IM Fell English", Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 1.5;
+    background:
+      radial-gradient(1100px 750px at 72% -12%, #f8efdb 0%, transparent 58%),
+      radial-gradient(900px 700px at 8% 112%, #e5d5b2 0%, transparent 55%),
+      var(--paper);
+    overflow-x: hidden;
+  }
+
+  /* paper grain, sits over everything like a bad scan */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    opacity: .055;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .sheet {
+    position: relative;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 56px);
+    background: linear-gradient(178deg, var(--paper-light), #f2e7cd 78%);
+    border: 1.5px solid rgba(43, 33, 23, .55);
+    border-radius: 3px 10px 4px 8px / 8px 4px 9px 3px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .65),
+      0 18px 40px -24px rgba(43, 33, 23, .55),
+      10px 12px 0 -6px rgba(43, 33, 23, .06);
+  }
+
+  /* a coffee ring someone forgot to wipe */
+  .sheet::after {
+    content: "";
+    position: absolute;
+    top: -22px;
+    left: 6%;
+    width: 84px;
+    height: 84px;
+    border: 6px solid rgba(122, 78, 38, .07);
+    border-radius: 50%;
+    transform: rotate(11deg);
+    pointer-events: none;
+  }
+
+  header { position: relative; z-index: 1; }
+
+  .eyebrow {
+    margin: 0 0 10px;
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: .78rem;
+    letter-spacing: .09em;
+    color: var(--ink-soft);
+    transform: rotate(-.4deg);
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: clamp(2.5rem, 6vw, 3.9rem);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: -.01em;
+  }
+
+  .sub {
+    margin: 0;
+    max-width: 54ch;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  .aside {
+    display: inline-block;
+    color: var(--red);
+    font-size: .92em;
+    transform: rotate(-.8deg);
+  }
+
+  .d20-mark {
+    position: absolute;
+    top: -26px;
+    right: 8px;
+    width: 190px;
+    height: 190px;
+    color: var(--ink);
+    opacity: .07;
+    transform: rotate(7deg);
+    pointer-events: none;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+    gap: clamp(28px, 5vw, 56px);
+    margin-top: clamp(28px, 4vw, 42px);
+    align-items: start;
+  }
+
+  /* ---------- the tray ---------- */
+
+  .stamp {
+    position: relative;
+    width: min(240px, 68vw);
+    aspect-ratio: 1;
+    margin: 0 auto 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 34%, #fbf4e4, #f0e4c9 72%);
+    box-shadow:
+      inset 0 0 0 6px var(--paper-light),
+      inset 0 0 0 7px rgba(43, 33, 23, .45),
+      0 6px 0 -3px rgba(43, 33, 23, .12);
+    transform: rotate(-1.2deg);
+    transition: transform .18s ease;
+  }
+
+  .stamp.is-rolling { animation: wobble .5s ease; }
+
+  @keyframes wobble {
+    0%   { transform: rotate(-1.2deg); }
+    25%  { transform: rotate(2deg) scale(1.015); }
+    55%  { transform: rotate(-2.4deg); }
+    80%  { transform: rotate(1deg); }
+    100% { transform: rotate(-1.2deg); }
+  }
+
+  .stamp-label {
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: .74rem;
+    letter-spacing: .12em;
+    color: var(--ink-soft);
+  }
+
+  .stamp-number {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(3.6rem, 10vw, 5rem);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+  }
+
+  .stamp-note {
+    min-height: 2.2em;
+    padding: 0 24px;
+    font-size: .86rem;
+    font-style: italic;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--ink-soft);
+  }
+
+  .stamp-note.is-crit { color: var(--red); }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 18px;
+    margin-bottom: 18px;
+    align-items: end;
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 6px;
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: .72rem;
+    letter-spacing: .08em;
+    color: var(--ink-soft);
+  }
+
+  .field-label em {
+    font-family: "IM Fell English", Georgia, serif;
+    font-size: .92em;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .stepper {
+    display: flex;
+    width: fit-content;
+    border: 1.5px solid var(--ink);
+    border-radius: 5px 7px 4px 6px;
+    background: rgba(255, 255, 255, .25);
+  }
+
+  .stepper button {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 1.15rem;
+    cursor: pointer;
+  }
+
+  .stepper button:hover { background: rgba(43, 33, 23, .07); }
+
+  .stepper output {
+    display: grid;
+    place-items: center;
+    min-width: 46px;
+    border-left: 1.5px dashed var(--faint);
+    border-right: 1.5px dashed var(--faint);
+    font-variant-numeric: tabular-nums;
+    font-size: .95rem;
+  }
+
+  .segmented {
+    display: flex;
+    width: fit-content;
+    border: 1.5px solid var(--ink);
+    border-radius: 5px 7px 4px 6px;
+    overflow: hidden;
+  }
+
+  .segmented button {
+    padding: 8px 11px 7px;
+    border: 0;
+    border-left: 1px solid var(--faint);
+    background: transparent;
+    color: var(--ink-soft);
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: .8rem;
+    letter-spacing: .05em;
+    cursor: pointer;
+  }
+
+  .segmented button:first-child { border-left: 0; }
+
+  .segmented button:hover { background: rgba(43, 33, 23, .06); }
+
+  .segmented button.on {
+    background: var(--ink);
+    color: var(--paper-light);
+  }
+
+  .dice {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 20px;
+  }
+
+  .die {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 0 8px;
+    border: 1.5px solid rgba(43, 33, 23, .75);
+    border-radius: 6px 4px 7px 5px;
+    background: transparent;
+    color: var(--ink);
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: .95rem;
+    letter-spacing: .02em;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 rgba(43, 33, 23, .12);
+    transition: transform .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+
+  .die:nth-child(1) { transform: rotate(-1.4deg); }
+  .die:nth-child(2) { transform: rotate(.9deg); }
+  .die:nth-child(3) { transform: rotate(-.7deg); }
+  .die:nth-child(4) { transform: rotate(1.3deg); }
+  .die:nth-child(5) { transform: rotate(-1deg); }
+  .die:nth-child(6) { transform: rotate(.6deg); }
+  .die:nth-child(7) { transform: rotate(-1.2deg); }
+
+  .die:hover {
+    transform: translateY(-2px) rotate(0deg);
+    background: rgba(43, 33, 23, .06);
+  }
+
+  .die[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--paper-light);
+    box-shadow: 2px 2px 0 rgba(154, 51, 36, .5);
+  }
+
+  .die[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--red);
+  }
+
+  .roll {
+    width: 100%;
+    padding: 15px 18px 13px;
+    border: 0;
+    border-radius: 5px 8px 4px 7px;
+    background: var(--ink);
+    color: var(--paper-light);
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: 1.06rem;
+    letter-spacing: .07em;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 rgba(43, 33, 23, .22);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+
+  .roll:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 6px 6px 0 rgba(43, 33, 23, .2);
+  }
+
+  .roll:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 rgba(43, 33, 23, .25);
+  }
+
+  .hint {
+    margin: 13px 0 0;
+    font-size: .8rem;
+    font-style: italic;
+    text-align: center;
+    color: var(--ink-soft);
+  }
+
+  kbd {
+    padding: 0 4px;
+    border: 1px solid rgba(43, 33, 23, .35);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, .35);
+    font-family: inherit;
+    font-size: .78em;
+  }
+
+  /* ---------- the log ---------- */
+
+  .log-wrap {
+    min-height: 320px;
+    padding-left: clamp(20px, 3vw, 32px);
+    border-left: 1.5px dashed rgba(43, 33, 23, .28);
+  }
+
+  .log-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .log-head h2 {
+    margin: 0;
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 400;
+    letter-spacing: .08em;
+  }
+
+  .link {
+    padding: 2px;
+    border: 0;
+    background: none;
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: .78rem;
+    font-style: italic;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .link:hover { color: var(--red); }
+
+  .log {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    max-height: 384px;
+    overflow: auto;
+    scrollbar-width: thin;
+  }
+
+  .log li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 9px 2px 8px;
+    border-bottom: 1px solid rgba(43, 33, 23, .12);
+    animation: slide .25s ease;
+  }
+
+  @keyframes slide {
+    from { opacity: 0; transform: translateY(-4px); }
+  }
+
+  .log time {
+    font-size: .72rem;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .log .what { font-size: .95rem; }
+
+  .log .total {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .log li.crit .total { color: var(--red); }
+
+  .log li.crit .total::after {
+    content: " ✦";
+    font-size: .65em;
+    vertical-align: super;
+  }
+
+  .log-empty {
+    margin: 16px 0 0;
+    font-size: .9rem;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  .tally {
+    margin: 18px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(43, 33, 23, .12);
+    font-family: "IM Fell English SC", Georgia, serif;
+    font-size: .78rem;
+    letter-spacing: .06em;
+    color: var(--ink-soft);
+  }
+
+  .tally b {
+    font-weight: 400;
+    color: var(--ink);
+  }
+
+  .log-note {
+    margin: 12px 0 0;
+    font-size: .85rem;
+    font-style: italic;
+    color: var(--ink-soft);
+    transform: rotate(-1.5deg);
+  }
+
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+    margin-top: 42px;
+    padding-top: 16px;
+    border-top: 1.5px solid rgba(43, 33, 23, .2);
+    font-size: .78rem;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+
+  footer p { margin: 0; }
+
+  :focus-visible {
+    outline: 2px dashed var(--red);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 780px) {
+    .layout { grid-template-columns: 1fr; }
+
+    .log-wrap {
+      padding: 26px 0 0;
+      border-top: 1.5px dashed rgba(43, 33, 23, .28);
+      border-left: 0;
+    }
+
+    .d20-mark {
+      width: 120px;
+      height: 120px;
+      top: -18px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .controls { grid-template-columns: 1fr; gap: 14px; }
+
+    .stamp { width: min(210px, 74vw); }
+
+    .dice { flex-wrap: wrap; }
+
+    .die { flex: 0 0 auto; min-width: 48px; padding: 10px 8px 8px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<main class="sheet">
+
+  <svg class="d20-mark" viewBox="0 0 200 200" aria-hidden="true">
+    <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">
+      <path d="M100 9 187 59 187 151 100 201 13 151 13 59Z"/>
+      <path d="M100 60 142 140 58 140Z"/>
+      <path d="M100 9 100 60M187 59 142 140M13 59 58 140M187 151 142 140M13 151 58 140M100 201 100 140"/>
+    </g>
+  </svg>
+
+  <header>
+    <p class="eyebrow">the thursday crew · session 41</p>
+    <h1>The Wobbly Goblet</h1>
+    <p class="sub">a dice tray for the Thursday game
+      <span class="aside">(no phones at the table — except this one)</span>
+    </p>
+  </header>
+
+  <div class="layout">
+
+    <section class="tray" aria-label="Dice tray">
+
+      <div class="stamp" id="stamp">
+        <span class="stamp-label" id="stampLabel">d20 +0</span>
+        <span class="stamp-number" id="result">?</span>
+        <span class="stamp-note" id="breakdown" aria-live="polite">the dice are waiting.</span>
+      </div>
+
+      <div class="controls">
+        <div>
+          <label class="field-label" for="modValue">modifier</label>
+          <div class="stepper">
+            <button type="button" id="modDown" aria-label="− decrease modifier">−</button>
+            <output id="modValue" for="modDown modUp">+0</output>
+            <button type="button" id="modUp" aria-label="+ increase modifier">+</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="field-label" id="modeLabel">roll mode <em>(d20 only)</em></span>
+          <div class="segmented" role="group" aria-labelledby="modeLabel">
+            <button type="button" data-mode="dis" aria-pressed="false">dis</button>
+            <button type="button" data-mode="normal" class="on" aria-pressed="true">normal</button>
+            <button type="button" data-mode="adv" aria-pressed="false">adv</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dice" role="group" aria-label="Choose a die">
+        <button type="button" class="die" data-sides="4" aria-pressed="false" aria-label="Roll a d4">d4</button>
+        <button type="button" class="die" data-sides="6" aria-pressed="false" aria-label="Roll a d6">d6</button>
+        <button type="button" class="die" data-sides="8" aria-pressed="false" aria-label="Roll a d8">d8</button>
+        <button type="button" class="die" data-sides="10" aria-pressed="false" aria-label="Roll a d10">d10</button>
+        <button type="button" class="die" data-sides="12" aria-pressed="false" aria-label="Roll a d12">d12</button>
+        <button type="button" class="die" data-sides="20" aria-pressed="true" aria-label="Roll a d20">d20</button>
+        <button type="button" class="die" data-sides="100" aria-pressed="false" aria-label="Roll d100 percentile dice">d100</button>
+      </div>
+
+      <button type="button" class="roll" id="rollBtn">Roll the bones</button>
+      <p class="hint">press <kbd>R</kbd> to re-roll · <kbd>1</kbd>–<kbd>7</kbd> to pick a die</p>
+    </section>
+
+    <aside class="log-wrap" aria-label="Roll history">
+      <div class="log-head">
+        <h2>the log</h2>
+        <button type="button" class="link" id="clearLog">burn the evidence</button>
+      </div>
+      <ol class="log" id="log"></ol>
+      <p class="log-empty" id="logEmpty">nothing yet. the dice are waiting.</p>
+      <p class="tally" id="tally">nat 20s <b>0</b> · nat 1s <b>0</b></p>
+      <p class="log-note">the log remembers.</p>
+    </aside>
+
+  </div>
+
+  <footer>
+    <p>v1.2 — built between sessions, tested mid-combat. the d4 still rolls weird.</p>
+    <p>roll responsibly.</p>
+  </footer>
+
+</main>
+
+<script>
+  const DICE = [4, 6, 8, 10, 12, 20, 100];
+  const STORAGE_KEY = 'wobbly-goblet-log-v1';
+
+  const state = { sides: 20, mod: 0, mode: 'normal', rolling: false, history: [] };
+
+  const el = {
+    stamp: document.getElementById('stamp'),
+    label: document.getElementById('stampLabel'),
+    result: document.getElementById('result'),
+    note: document.getElementById('breakdown'),
+    modValue: document.getElementById('modValue'),
+    log: document.getElementById('log'),
+    empty: document.getElementById('logEmpty'),
+    tally: document.getElementById('tally'),
+    clear: document.getElementById('clearLog'),
+    roll: document.getElementById('rollBtn')
+  };
+
+  function d(sides) {
+    return Math.floor(Math.random() * sides) + 1;
+  }
+
+  function fmtMod(m) {
+    return (m >= 0 ? '+' : '−') + Math.abs(m);
+  }
+
+  function updateLabel() {
+    el.label.textContent = 'd' + state.sides + (state.mod !== 0 ? ' ' + fmtMod(state.mod) : '');
+  }
+
+  function setMode(mode) {
+    state.mode = mode;
+    document.querySelectorAll('[data-mode]').forEach(function (btn) {
+      const on = btn.dataset.mode === mode;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  function selectDie(sides, shouldRoll) {
+    state.sides = sides;
+    document.querySelectorAll('[data-sides]').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', String(Number(btn.dataset.sides) === sides));
+    });
+    updateLabel();
+    if (shouldRoll) doRoll();
+  }
+
+  function quipFor(raw, total) {
+    if (raw === 20) return 'the table erupts.';
+    if (raw === 1) return 'the dice have chosen violence.';
+    if (total >= 20) return 'absurd. the DM is furious.';
+    if (total >= 15) return "that'll do nicely.";
+    if (total >= 10) return 'perfectly average heroics.';
+    if (total >= 5) return 'bold. reckless, but bold.';
+    return 'the goblet weeps.';
+  }
+
+  function doRoll() {
+    if (state.rolling) return;
+    state.rolling = true;
+
+    el.stamp.classList.remove('is-rolling');
+    void el.stamp.offsetWidth;
+    el.stamp.classList.add('is-rolling');
+
+    const sides = state.sides;
+    let raw;
+    let second = null;
+
+    if (sides === 20 && state.mode !== 'normal') {
+      const a = d(20);
+      const b = d(20);
+      raw = state.mode === 'adv' ? Math.max(a, b) : Math.min(a, b);
+      second = state.mode === 'adv' ? Math.min(a, b) : Math.max(a, b);
+    } else {
+      raw = d(sides);
+    }
+
+    const total = raw + state.mod;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finishRoll(raw, second, total);
+      return;
+    }
+
+    let ticks = 0;
+    const iv = setInterval(function () {
+      el.result.textContent = d(sides);
+      ticks += 1;
+      if (ticks >= 11) {
+        clearInterval(iv);
+        finishRoll(raw, second, total);
+      }
+    }, 45);
+  }
+
+  function finishRoll(raw, second, total) {
+    el.result.textContent = total;
+
+    let math = '';
+    if (second !== null) {
+      math = raw + ' / ' + second + ' ' + (state.mode === 'adv' ? 'adv' : 'dis');
+    }
+    if (state.mod !== 0) {
+      if (!math) math = String(raw);
+      math += ' ' + (state.mod > 0 ? '+ ' + state.mod : '− ' + Math.abs(state.mod));
+    }
+    if (math) math += ' = ' + total;
+
+    const crit = state.sides === 20 && raw === 20 ? 'high'
+      : state.sides === 20 && raw === 1 ? 'low'
+      : null;
+
+    let note;
+    if (state.sides === 20) {
+      note = (math || String(total)) + ' — ' + quipFor(raw, total);
+    } else {
+      note = math || ('rolled ' + raw);
+    }
+
+    el.note.textContent = note;
+    el.note.classList.toggle('is-crit', Boolean(crit));
+
+    state.history.unshift({
+      t: Date.now(),
+      sides: state.sides,
+      mod: state.mod,
+      mode: state.mode,
+      raw: raw,
+      second: second,
+      total: total,
+      crit: crit
+    });
+    state.history = state.history.slice(0, 12);
+
+    save();
+    renderLog();
+    state.rolling = false;
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history));
+    } catch (e) { /* private mode, whatever */ }
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) state.history = JSON.parse(raw).slice(0, 12);
+    } catch (e) {
+      state.history = [];
+    }
+  }
+
+  function renderLog() {
+    el.log.innerHTML = '';
+
+    let nat20 = 0;
+    let nat1 = 0;
+
+    if (!state.history.length) {
+      el.empty.hidden = false;
+      el.tally.innerHTML = 'nat 20s <b>0</b> · nat 1s <b>0</b>';
+      return;
+    }
+
+    el.empty.hidden = true;
+
+    state.history.forEach(function (entry) {
+      if (entry.crit === 'high') nat20 += 1;
+      if (entry.crit === 'low') nat1 += 1;
+
+      const li = document.createElement('li');
+      if (entry.crit) li.classList.add('crit');
+
+      const time = document.createElement('time');
+      time.textContent = new Date(entry.t).toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+
+      const what = document.createElement('span');
+      what.className = 'what';
+      let label = 'd' + entry.sides;
+      if (entry.second !== null) label += ' ' + (entry.mode === 'adv' ? 'adv' : 'dis');
+      if (entry.mod !== 0) label += ' ' + fmtMod(entry.mod);
+      what.textContent = label;
+      if (entry.crit === 'high') what.title = 'nat 20 — the table erupts';
+      if (entry.crit === 'low') what.title = 'nat 1 — the dice have chosen violence';
+
+      const total = document.createElement('span');
+      total.className = 'total';
+      total.textContent = entry.total;
+
+      li.append(time, what, total);
+      el.log.append(li);
+    });
+
+    el.tally.innerHTML = 'nat 20s <b>' + nat20 + '</b> · nat 1s <b>' + nat1 + '</b>';
+  }
+
+  function changeMod(delta) {
+    state.mod = Math.max(-10, Math.min(20, state.mod + delta));
+    el.modValue.textContent = fmtMod(state.mod);
+    updateLabel();
+  }
+
+  document.querySelectorAll('[data-sides]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      selectDie(Number(btn.dataset.sides), true);
+    });
+  });
+
+  document.querySelectorAll('[data-mode]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      setMode(btn.dataset.mode);
+    });
+  });
+
+  document.getElementById('modDown').addEventListener('click', function () { changeMod(-1); });
+  document.getElementById('modUp').addEventListener('click', function () { changeMod(1); });
+  el.roll.addEventListener('click', doRoll);
+
+  el.clear.addEventListener('click', function () {
+    state.history = [];
+    save();
+    renderLog();
+    const old = el.clear.textContent;
+    el.clear.textContent = 'gone.';
+    setTimeout(function () { el.clear.textContent = old; }, 1200);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const key = e.key.toLowerCase();
+
+    if (key === 'r') {
+      e.preventDefault();
+      doRoll();
+      return;
+    }
+
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= DICE.length) {
+      selectDie(DICE[n - 1], true);
+    }
+  });
+
+  load();
+  setMode('normal');
+  updateLabel();
+  renderLog();
+</script>
+
+</body>
+</html>
